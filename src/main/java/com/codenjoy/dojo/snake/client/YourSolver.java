@@ -63,7 +63,7 @@ public class YourSolver implements Solver<Board> {
     }
 
     private void getTest() {
-        System.out.println("123");
+        System.out.println("444");
     }
 
     private void getExit(Board board) {
