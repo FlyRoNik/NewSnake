@@ -27,6 +27,7 @@ public class YourSolver implements Solver<Board> {
     private Point point_snake_copy;
 
 
+
     public YourSolver(Dice dice) {
         this.dice = dice;
     }
@@ -49,13 +50,8 @@ public class YourSolver implements Solver<Board> {
         point_snake = board.getHead();
         point_snake_copy = point_snake.copy();
 
-
-
 //        point_snake_copy.move(point_snake_copy.getX() + Direction.DOWN.changeX(0), point_snake_copy.getY() + Direction.DOWN.changeY(0));
 //        Direction direction = searchDirect(Direction.DOWN);
-
-
-
 
         //TODO если 2 варианта пути то стоит ли выбирать лучший??
         Direction direction = searchDirect(Direction.STOP);
@@ -84,6 +80,66 @@ public class YourSolver implements Solver<Board> {
             }
             count++;
         }
+    private String longDirect(Point point_snake, Point point_exit) {
+        Direction direct = searchLook(getCharInDirect(Direction.STOP));
+        Point point_nextStep0, point_nextStep1, point_nextStep2;
+        Direction[] arr_direct = new Direction[0];
+
+        if(getCharInDirect(direct.inverted().clockwise())==Elements.NONE.ch()){
+            arr_direct=addToArray(arr_direct,direct.inverted().clockwise());
+        }
+        if(getCharInDirect(direct.inverted().clockwise().clockwise())==Elements.NONE.ch()){
+            arr_direct=addToArray(arr_direct,direct.inverted().clockwise().clockwise());
+        }
+        if(getCharInDirect(direct.inverted().clockwise().clockwise().clockwise())==Elements.NONE.ch()){
+            arr_direct=addToArray(arr_direct,direct.inverted().clockwise().clockwise().clockwise());
+        }
+
+        if(arr_direct.length==3) {
+            point_nextStep0 = arr_direct[0].change(point_snake);
+            point_nextStep1 = arr_direct[1].change(point_snake);
+            point_nextStep2 = arr_direct[2].change(point_snake);
+            if (point_nextStep0.distance(point_exit) > point_nextStep1.distance(point_exit)) {
+                if (point_nextStep0.distance(point_exit) > point_nextStep2.distance(point_exit)) {
+                    direct = arr_direct[0];
+                } else {
+                    direct = arr_direct[2];
+                }
+            } else {
+                if (point_nextStep1.distance(point_exit) > point_nextStep2.distance(point_exit)) {
+                    direct = arr_direct[1];
+                } else {
+                    direct = arr_direct[2];
+                }
+            }
+        } else{
+            if(arr_direct.length==2){
+                point_nextStep0 = arr_direct[0].change(point_snake);
+                point_nextStep1 = arr_direct[1].change(point_snake);
+                if (point_nextStep0.distance(point_exit) > point_nextStep1.distance(point_exit)) {
+                    direct = arr_direct[0];
+                } else {
+                    direct = arr_direct[1];
+                }
+            }
+            else{
+                direct=arr_direct[0];
+            }
+        }
+
+        return direct.toString();
+    }
+
+    private void getTest() {
+        System.out.println("5");
+    }
+
+    private void getExit(Board board) {
+        Board saveBoard = this.board;
+        this.board = board;
+
+
+
     }
 
     private Direction searchDirect(Direction direct) {
