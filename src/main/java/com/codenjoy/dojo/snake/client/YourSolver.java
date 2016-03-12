@@ -6,6 +6,7 @@ import com.codenjoy.dojo.client.Solver;
 import com.codenjoy.dojo.client.WebSocketRunner;
 import com.codenjoy.dojo.services.Dice;
 import com.codenjoy.dojo.services.Point;
+import com.codenjoy.dojo.services.PointImpl;
 import com.codenjoy.dojo.services.RandomDice;
 import com.codenjoy.dojo.snake.model.Elements;
 
@@ -36,7 +37,13 @@ public class YourSolver implements Solver<Board> {
 
     @Override
     public String get(Board board) {
-        this.board = new Board(board.getField());
+        this.board = new Board(board.getField()); //TODO Локальная борда
+        Point pointTeil = this.board.get(Elements.TAIL_END_UP,
+                                        Elements.TAIL_END_DOWN,
+                                        Elements.TAIL_END_LEFT,
+                                        Elements.TAIL_END_RIGHT).get(0);
+
+        this.board.set(pointTeil.getX(),pointTeil.getY(),' ');
 
         point_app = board.getApples().get(0);
         point_snake = board.getHead();
@@ -53,8 +60,7 @@ public class YourSolver implements Solver<Board> {
         //TODO если 2 варианта пути то стоит ли выбирать лучший??
         Direction direction = searchDirect(Direction.STOP);
         if (direction == Direction.STOP) {
-            getExit(board);
-            getTest();
+            int count = getExit(new Board(board.getField()),pointTeil);
         }
 
 
@@ -62,16 +68,22 @@ public class YourSolver implements Solver<Board> {
         return direction.toString();
     }
 
-    private void getTest() {
-        System.out.println("5");
-    }
-
-    private void getExit(Board board) {
-        Board saveBoard = this.board;
-        this.board = board;
-
-
-
+    private int getExit(Board board,Point point) {
+        this.board = new Board(board.getField());
+        int count = 0;
+        while (true) {
+            Direction[] direction = getDirectionSnake(point);
+            Direction direct = direction[0];
+            if (direction.length < 2) {
+                board.set(point.getX(), point.getY(), ' ');
+                this.board = new Board(board.getField());
+                if (searchDirect(Direction.STOP) != Direction.STOP) {
+                    return count;
+                }
+                point.move(point.getX() + direct.changeX(0), point.getY() + direct.changeY(0));
+            }
+            count++;
+        }
     }
 
     private Direction searchDirect(Direction direct) {
@@ -301,7 +313,7 @@ public class YourSolver implements Solver<Board> {
     }
 
     private Direction[] addToArray(Direction[] array, Direction s) {
-        Direction[] ans = new Direction[array.length+1];
+        Direction[] ans = new Direction[array.length + 1];
         System.arraycopy(array, 0, ans, 0, array.length);
         ans[ans.length - 1] = s;
         return ans;
@@ -338,9 +350,9 @@ public class YourSolver implements Solver<Board> {
         Direction[] directions = new Direction[0];
         Direction[] pointDirection = board.getAt(point.getX(),point.getY()).getDirectionElement();
         for (Direction d : pointDirection) {
-            for (Direction p : board.getAt(d.changeX(0), d.changeY(0)).getDirectionElement()) {
+            for (Direction p : board.getAt(point.getX() + d.changeX(0), point.getY() + d.changeY(0)).getDirectionElement()) {
                 if (d == p.inverted()) {
-                    addToArray(directions,d);
+                    directions = addToArray(directions, d);
                 }
             }
         }

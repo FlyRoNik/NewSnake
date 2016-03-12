@@ -103,4 +103,8 @@ public class Board extends AbstractBoard<Elements> {
     public List<Point> getWalls() {
         return get(Elements.BREAK);
     }
+
+    public Elements getAt(Point point) {
+        return super.getAt(point.getX(), point.getY());
+    }
 }
