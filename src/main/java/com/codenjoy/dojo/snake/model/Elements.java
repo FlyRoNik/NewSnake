@@ -60,7 +60,7 @@ public enum Elements implements CharElements {
                 return el;
             }
         }
-        throw new IllegalArgumentException("No such element for " + ch);
+        return NONE;
     }
 
     public Direction[] getDirectionElement(){

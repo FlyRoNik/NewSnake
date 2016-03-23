@@ -49,27 +49,20 @@ public class YourSolver implements Solver<Board> {
         point_app = board.getApples().get(0);
         point_snake = board.getHead();
         point_snake_copy = point_snake.copy();
-        int count = 0;
+
 
 //        point_snake_copy.move(point_snake_copy.getX() + Direction.DOWN.changeX(0), point_snake_copy.getY() + Direction.DOWN.changeY(0));
 //        Direction direction = searchDirect(Direction.DOWN);
 
         //TODO если 2 варианта пути то стоит ли выбирать лучший??
-        long t1 = System.nanoTime();
         Direction direction = searchDirect(Direction.STOP);
-        System.out.println("A:" + (System.nanoTime() - t1) / 1_000_000);
-
         if (direction == Direction.STOP) {
-            Board board1 = new Board(board.getField());
-            count = getExit(board1,pointTeil);
-            this.board = board1;
-            outMass();
+            int count = getExit(new Board(board.getField()),pointTeil);
+            this.board.set(point_app.getX(), point_app.getY(), ' ');
             point_app.move(pointTeil);
-            this.board.set(point_app.getX(), point_app.getY(),'☺');
-
-            direction = searchDirect(Direction.STOP, count);
-
-            //direction = longDirect(point_snake, pointTeil);
+            this.board.set(point_app.getX(), point_app.getY(), '☺');
+            outMass();
+            direction = searchDirect(Direction.STOP, count - 1);
         }
 
 
@@ -80,6 +73,8 @@ public class YourSolver implements Solver<Board> {
     private int getExit(Board board,Point point) {
         this.board = new Board(board.getField());
         int count = 0;
+        boolean flag = false;
+        Point point1 = null;
         while (true) {
             Direction[] direction = getDirectionSnake(point);
             Direction direct = direction[0];
@@ -87,7 +82,20 @@ public class YourSolver implements Solver<Board> {
                 board.set(point.getX(), point.getY(), ' ');
                 this.board = new Board(board.getField());
                 if (searchDirect(Direction.STOP) != Direction.STOP) {
-                    return count;
+                    if (point_snake.itsMe(getPointInDirect(searchLook(this.board.getAt(point).ch()).inverted(), point))) {
+                        flag = true;
+                        point1 = new PointImpl(point);
+                    } else {
+                        if (flag) {
+                            point.move(getPointInDirect(searchLook(this.board.getAt(point_snake).ch()), point_snake));
+                            board.set(point1.getX(), point1.getY(), '☼');
+                        } else {
+                            point.move(getPointInDirect(searchLook(this.board.getAt(point).ch()).inverted(), point));
+                        }
+
+                        this.board = new Board(board.getField());
+                        return count;
+                    }
                 }
                 point.move(point.getX() + direct.changeX(0), point.getY() + direct.changeY(0));
             }
@@ -95,7 +103,123 @@ public class YourSolver implements Solver<Board> {
         }
     }
 
-    private Direction longDirect(Point point_snake, Point point_exit) {
+    private Direction searchDirect(Direction direct, int count) {
+        if (direct == Direction.STOP) {
+            direct = searchLook(board.getField()[point_snake.getX()][point_snake.getY()]).inverted(); //при первом вхождении
+        }else {
+            setCharInDirect(direct, getLookForDirect(direct));
+            point_snake.move(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0));
+            direct = direct.inverted(); // для исключения направления откуда пришда змейка
+        }
+
+        //outMass();
+
+        searchPrior();
+
+        Direction[] arr_direct = {direct.clockwise(), direct.clockwise().clockwise(),
+                direct.clockwise().clockwise().clockwise()}; //заполняем массив напрвлениями кроме того откуда пришла
+
+        Direction[] arr_PriorDirect = new Direction[0];
+        Direction[] arr_NotPriorDirect = new Direction[0];
+
+        for (Direction anArr_direct : arr_direct) {                         //ищем приоритетные направления
+            if (anArr_direct.equals(prior_X) || anArr_direct.equals(prior_Y)) {
+                arr_PriorDirect = addToArray(arr_PriorDirect, anArr_direct);
+            } else {
+                arr_NotPriorDirect = addToArray(arr_NotPriorDirect, anArr_direct);
+            }
+        }
+
+        getProcessDirect(arr_PriorDirect);     //переставляет напр. совпадающие с напр. змейки вперет
+        getProcessDirect(arr_NotPriorDirect);
+
+        if (!point_snake.itsMe(point_app.copy())) {
+
+            for (Direction arr : arr_PriorDirect) {        //проверяем возможность идти по приоритетным направлениям
+
+                char ch = getCharInDirect(arr);
+
+                if (ch == '♣') {
+                    return null;
+                }
+
+                //outMass();
+                Direction direction = getDirection(arr_direct, arr, ch, count);
+                if (direction != null) {return direction;}
+            }
+            //outMass();
+
+            for (Direction arr : arr_NotPriorDirect) {     //проверяем возможность идти по не приоритетным направлениям
+                getProcessDirect(arr_NotPriorDirect);
+
+                char ch = getCharInDirect(arr);
+
+                if (ch == '♣') {
+                    return null;
+                }
+
+                //outMass();
+                Direction direction = getDirection(arr_direct, arr, ch, count);
+                if (direction != null) return direction;
+            }
+
+        }else {
+            if (count <= 0) {
+                //outMass();
+                return Direction.ACT;
+            }else {
+                //outMass();
+                return null;
+            }
+        }
+
+        return Direction.STOP;
+    }
+
+    private Direction getDirection(Direction[] arr_direct, Direction arr, char ch, int count) {
+        Direction direct;
+        if (ch == Elements.NONE.ch() || ch == Elements.GOOD_APPLE.ch()) {     //можно ли двигаться в этом направлении
+
+            boolean back = setAnchor(arr_direct, arr);   //установка ♣, вернет true если есть хоть одно направление
+            //outMass();
+            count--;
+            direct = searchDirect(arr, count);
+            //outMass();
+
+            if (direct == Direction.ACT || direct == Direction.STOP || direct == null){
+                moveBack(arr);
+                //outMass();
+            }
+
+            if (direct == Direction.ACT) {
+                if (point_snake.itsMe(point_snake_copy)) {
+                    outMass();
+                    return arr;
+                }
+                return Direction.ACT;
+            }
+
+            if (direct == Direction.STOP) {
+                setCharInDirectQ(arr, '☼');
+            }
+
+            if (direct == null) {
+                wipeoffLook(arr);
+            }
+
+            //outMass();
+            if (direct == null || direct == Direction.STOP) {
+                count++;
+                if (!back) {
+                    return Direction.STOP;
+                }
+                wipeoffAnchor(arr_direct, arr); //стереть ♣
+            }
+        }
+        return null;
+    }
+
+    private String longDirect(Point point_snake, Point point_exit) {
         Direction direct = searchLook(getCharInDirect(Direction.STOP));
         Point point_nextStep0, point_nextStep1, point_nextStep2;
         Direction[] arr_direct = new Direction[0];
@@ -142,113 +266,7 @@ public class YourSolver implements Solver<Board> {
             }
         }
 
-        return direct;
-    }
-
-    private Direction searchDirect(Direction direct, int count) {
-        if (direct == Direction.STOP) {
-            direct = searchLook(board.getField()[point_snake.getX()][point_snake.getY()]).inverted(); //при первом вхождении
-        }else {
-            setCharInDirect(direct, getLookForDirect(direct));
-            point_snake.move(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0));
-            direct = direct.inverted(); // для исключения направления откуда пришда змейка
-        }
-
-        outMass();
-
-        searchPrior();
-
-        Direction[] arr_direct = {direct.clockwise(), direct.clockwise().clockwise(),
-                direct.clockwise().clockwise().clockwise()}; //заполняем массив напрвлениями кроме того откуда пришла
-
-        Direction[] arr_PriorDirect = new Direction[0];
-        Direction[] arr_NotPriorDirect = new Direction[0];
-
-        for (Direction anArr_direct : arr_direct) {                         //ищем приоритетные направления
-            if (anArr_direct.equals(prior_X) || anArr_direct.equals(prior_Y)) {
-                arr_PriorDirect = addToArray(arr_PriorDirect, anArr_direct);
-            } else {
-                arr_NotPriorDirect = addToArray(arr_NotPriorDirect, anArr_direct);
-            }
-        }
-
-        getProcessDirect(arr_PriorDirect);     //переставляет напр. совпадающие с напр. змейки вперет
-        getProcessDirect(arr_NotPriorDirect);
-
-        if (!point_snake.itsMe(point_app.copy())) {
-
-            for (Direction arr : arr_PriorDirect) {        //проверяем возможность идти по приоритетным направлениям
-
-                char ch = getCharInDirect(arr);
-
-                if (ch == '♣') {
-                    return null;
-                }
-
-                Direction direction = getDirection(arr_direct, arr, ch, count);
-                if (direction != null) {return direction;}
-            }
-
-            for (Direction arr : arr_NotPriorDirect) {     //проверяем возможность идти по не приоритетным направлениям
-
-                char ch = getCharInDirect(arr);
-
-                if (ch == '♣') {
-                    return null;
-                }
-
-                Direction direction = getDirection(arr_direct, arr, ch, count);
-                if (direction != null) return direction;
-            }
-
-        }else {
-            if (count <= 0) {
-                return Direction.ACT;
-            }else {
-                return null;
-            }
-        }
-
-        return Direction.STOP;
-    }
-
-    private Direction getDirection(Direction[] arr_direct, Direction arr, char ch, int count) {
-        Direction direct;
-        if (ch == Elements.NONE.ch() || ch == Elements.GOOD_APPLE.ch()) {     //можно ли двигаться в этом направлении
-
-            boolean back = setAnchor(arr_direct, arr);   //установка ♣, вернет true если есть хоть одно направление
-            outMass();
-            count--;
-            direct = searchDirect(arr, count);
-
-            if (direct == Direction.ACT || direct == Direction.STOP || direct == null){
-                moveBack(arr);
-            }
-
-            if (direct == Direction.ACT) {
-                if (point_snake.itsMe(point_snake_copy)) {
-                    return arr;
-                }
-                return Direction.ACT;
-            }
-
-            if (direct == Direction.STOP) {
-                setCharInDirectQ(arr, '☼');
-            }
-
-            if (direct == null) {
-                wipeoffLook(arr);
-            }
-
-            if (direct == null || direct == Direction.STOP) {
-                count++;
-                if (!back) {
-                    return Direction.STOP;
-                }
-                wipeoffAnchor(arr_direct, arr); //стереть ♣
-            }
-        }
-        return null;
+        return direct.toString();
     }
 
     private Direction searchDirect(Direction direct) {
@@ -328,6 +346,7 @@ public class YourSolver implements Solver<Board> {
 
             if (direct == Direction.ACT) {
                 if (point_snake.itsMe(point_snake_copy)) {
+                    outMass();
                     return arr;
                 }
                 return Direction.ACT;
@@ -414,7 +433,9 @@ public class YourSolver implements Solver<Board> {
     }
 
     private void wipeoffLook(Direction direct) {
-        board.set(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0), ' ');
+        if (getCharInDirect(direct) != '☺') {
+            board.set(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0), ' ');
+        }
     }
 
     private void searchPrior() {
@@ -475,6 +496,10 @@ public class YourSolver implements Solver<Board> {
     private char getCharInDirect(Direction direct) {
         return board.getField()[point_snake.getX() +
                 direct.changeX(0)][point_snake.getY() + direct.changeY(0)];
+    }
+
+    private Point getPointInDirect(Direction direct, Point point) {
+        return new PointImpl(point.getX() + direct.changeX(0),point.getY() + direct.changeY(0));
     }
 
     private Direction[] addToArray(Direction[] array, Direction s) {

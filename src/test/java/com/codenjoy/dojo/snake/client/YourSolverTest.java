@@ -593,6 +593,25 @@ public class YourSolverTest {
     }
 
     @Test
+    public void testFindExit7() {
+        assertB("☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼" +
+                "☼  ☻          ☼" +
+                "☼╔════════╗   ☼" +
+                "☼║        ║   ☼" +
+                "☼║▲       ║   ☼" +
+                "☼║╚═══════╝   ☼" +
+                "☼╙       ☺    ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼             ☼" +
+                "☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼", "RIGHT");
+    }
+
+    @Test
      public void testEatBreak4() {
         assertB("☼☼☼☼☼☼☼☼☼☼☼☼☼☼☼" +
                 "☼             ☼" +
