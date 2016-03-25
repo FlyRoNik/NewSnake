@@ -36,6 +36,16 @@ public class YourSolver implements Solver<Board> {
         start(USER_NAME, WebSocketRunner.Host.REMOTE);
     }
 
+    public static void start(String name, WebSocketRunner.Host server) {
+        try {
+            WebSocketRunner.run(server, name,
+                    new YourSolver(new RandomDice()),
+                    new Board());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public String get(Board board) {
         this.board = new Board(board.getField()); //TODO Локальная борда
@@ -58,38 +68,52 @@ public class YourSolver implements Solver<Board> {
         Direction direction = searchDirect(Direction.STOP);
         if (direction == Direction.STOP) {
             int count = getExit(new Board(board.getField()),pointTeil);
+            this.board = new Board(board.getField());
             this.board.set(point_app.getX(), point_app.getY(), ' ');
             point_app.move(pointTeil);
             this.board.set(point_app.getX(), point_app.getY(), '☺');
             outMass();
+            outMass(board);
             direction = searchDirect(Direction.STOP, count - 1);
         }
 
-
-        assert direction != null;
+        if (direction == Direction.STOP || direction == null) {
+            direction = searchLook(board.getAt(point_snake.copy()).ch()).inverted();
+        }
         return direction.toString();
     }
 
     private int getExit(Board board,Point point) {
+        Board board1 = new Board(board.getField());
         this.board = new Board(board.getField());
         int count = 0;
         boolean flag = false;
         Point point1 = null;
         while (true) {
             Direction[] direction = getDirectionSnake(point);
-            Direction direct = direction[0];
+            Direction direct = direction[0]; //TODO ArrayIndexOutOfBoundsException: 0
             if (direction.length < 2) {
+                //outMass();
                 board.set(point.getX(), point.getY(), ' ');
                 this.board = new Board(board.getField());
+                //outMass(board);
                 if (searchDirect(Direction.STOP) != Direction.STOP) {
                     if (point_snake.itsMe(getPointInDirect(searchLook(this.board.getAt(point).ch()).inverted(), point))) {
-                        flag = true;
-                        point1 = new PointImpl(point);
+                        if (board.getAt(getPointInDirect(searchLook(board.getAt(point_snake.copy()).ch()), point_snake)).ch() == ' ') {
+                            flag = true;
+                            point1 = new PointImpl(point);
+                        } else {
+                            board.set(point.getX(), point.getY(), '☼');
+                        }
+                        //outMass(board);
                     } else {
                         if (flag) {
                             point.move(getPointInDirect(searchLook(this.board.getAt(point_snake).ch()), point_snake));
                             board.set(point1.getX(), point1.getY(), '☼');
                         } else {
+                            if (board1.getAt(getPointInDirect(searchLook(board1.getAt(point_snake.copy()).ch()), point_snake)).ch() != ' ') {
+                                count++;
+                            }
                             point.move(getPointInDirect(searchLook(this.board.getAt(point).ch()).inverted(), point));
                         }
 
@@ -97,6 +121,7 @@ public class YourSolver implements Solver<Board> {
                         return count;
                     }
                 }
+                //outMass();
                 point.move(point.getX() + direct.changeX(0), point.getY() + direct.changeY(0));
             }
             count++;
@@ -181,8 +206,8 @@ public class YourSolver implements Solver<Board> {
         if (ch == Elements.NONE.ch() || ch == Elements.GOOD_APPLE.ch()) {     //можно ли двигаться в этом направлении
 
             boolean back = setAnchor(arr_direct, arr);   //установка ♣, вернет true если есть хоть одно направление
-            //outMass();
             count--;
+            //outMass();
             direct = searchDirect(arr, count);
             //outMass();
 
@@ -193,14 +218,15 @@ public class YourSolver implements Solver<Board> {
 
             if (direct == Direction.ACT) {
                 if (point_snake.itsMe(point_snake_copy)) {
-                    outMass();
+                    //outMass();
                     return arr;
                 }
                 return Direction.ACT;
             }
 
             if (direct == Direction.STOP) {
-                setCharInDirectQ(arr, '☼');
+                //setCharInDirectQ(arr, ' ');
+                setCharInDirectQ(arr, '♥');
             }
 
             if (direct == null) {
@@ -428,6 +454,7 @@ public class YourSolver implements Solver<Board> {
         for (Direction d : arr_direct) {
             if (!d.equals(direct)) {
                 setCharInDirectA(d, ' ');
+                //outMass();
             }
         }
     }
@@ -515,6 +542,9 @@ public class YourSolver implements Solver<Board> {
             board.set(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0), symbol);
             return true;
         }
+        if (ch == '♥') {
+            board.set(point_snake.getX() + direct.changeX(0), point_snake.getY() + direct.changeY(0), ' ');
+        }
         return false;
     }
 
@@ -547,16 +577,6 @@ public class YourSolver implements Solver<Board> {
             }
         }
         return directions;
-    }
-
-    public static void start(String name, WebSocketRunner.Host server) {
-        try {
-            WebSocketRunner.run(server, name,
-                    new YourSolver(new RandomDice()),
-                    new Board());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
 }
