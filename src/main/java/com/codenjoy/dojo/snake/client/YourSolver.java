@@ -60,12 +60,14 @@ public class YourSolver implements Solver<Board> {
         point_snake = board.getHead();
         point_snake_copy = point_snake.copy();
 
-
-//        point_snake_copy.move(point_snake_copy.getX() + Direction.DOWN.changeX(0), point_snake_copy.getY() + Direction.DOWN.changeY(0));
-//        Direction direction = searchDirect(Direction.DOWN);
+        if (getCharInDirect(searchLook(this.board.getAt(point_snake).ch()).inverted()) ==
+                getNeck(this.board.getAt(point_snake).ch())) {
+            return Direction.STOP.toString();
+        }
 
         //TODO если 2 варианта пути то стоит ли выбирать лучший??
         Direction direction = searchDirect(Direction.STOP);
+
         if (direction == Direction.STOP) {
             int count = getExit(new Board(board.getField()),pointTeil);
             this.board = new Board(board.getField());
@@ -83,6 +85,17 @@ public class YourSolver implements Solver<Board> {
         return direction.toString();
     }
 
+    private char getNeck(char c) {
+        if (c == '►' || c == '◄') {
+            return '║';
+        }
+        if (c == '▲' || c == '▼') {
+            return '═';
+        }
+        System.out.println("Fail!!");
+        return ' ';
+    }
+
     private int getExit(Board board,Point point) {
         Board board1 = new Board(board.getField());
         this.board = new Board(board.getField());
@@ -91,9 +104,12 @@ public class YourSolver implements Solver<Board> {
         Point point1 = null;
         while (true) {
             Direction[] direction = getDirectionSnake(point);
+            if (direction == null) {
+                return -1;
+            }
             Direction direct = direction[0]; //TODO ArrayIndexOutOfBoundsException: 0
             if (direction.length < 2) {
-                //outMass();
+                outMass();
                 board.set(point.getX(), point.getY(), ' ');
                 this.board = new Board(board.getField());
                 //outMass(board);
@@ -190,7 +206,7 @@ public class YourSolver implements Solver<Board> {
 
         }else {
             if (count <= 0) {
-                //outMass();
+                outMass();
                 return Direction.ACT;
             }else {
                 //outMass();
@@ -569,14 +585,20 @@ public class YourSolver implements Solver<Board> {
     public Direction[] getDirectionSnake(Point point) {
         Direction[] directions = new Direction[0];
         Direction[] pointDirection = board.getAt(point.getX(),point.getY()).getDirectionElement();
+        boolean flag = false;
         for (Direction d : pointDirection) {
             for (Direction p : board.getAt(point.getX() + d.changeX(0), point.getY() + d.changeY(0)).getDirectionElement()) {
                 if (d == p.inverted()) {
                     directions = addToArray(directions, d);
+                    flag = true;
                 }
             }
         }
-        return directions;
+        if (flag) {
+            return directions;
+        } else {
+            return null;
+        }
     }
 
 }
