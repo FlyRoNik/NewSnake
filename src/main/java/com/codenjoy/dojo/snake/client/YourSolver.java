@@ -52,6 +52,8 @@ public class YourSolver implements Solver<Board> {
 
 //        point_snake_copy.move(point_snake_copy.getX() + Direction.DOWN.changeX(0), point_snake_copy.getY() + Direction.DOWN.changeY(0));
 //        Direction direction = searchDirect(Direction.DOWN);
+//        point_snake_copy.move(point_snake_copy.getX() + Direction.DOWN.changeX(0), point_snake_copy.getY() + Direction.DOWN.changeY(0));
+//        Direction direction = searchDirect(Direction.DOWN);
 
         //TODO если 2 варианта пути то стоит ли выбирать лучший??
         Direction direction = searchDirect(Direction.STOP);
@@ -80,6 +82,8 @@ public class YourSolver implements Solver<Board> {
             }
             count++;
         }
+    }
+
     private String longDirect(Point point_snake, Point point_exit) {
         Direction direct = searchLook(getCharInDirect(Direction.STOP));
         Point point_nextStep0, point_nextStep1, point_nextStep2;
